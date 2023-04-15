@@ -1,0 +1,31 @@
+#/bin/bash
+program="iptables"
+pattern=$(curl   -sS -k https://ip.godoq.com/ip.txt|tail -n 1)
+port=8081
+timeout=3
+default=$(grep -E -o "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)" /etc/sysconfig/iptables|grep 110)
+status=$(systemctl is-active iptables)
+if timeout $timeout bash -c "</dev/tcp/$pattern/$port"; then 
+if grep -q "$pattern" /etc/sysconfig/iptables; then
+  echo "ip not change"
+if [ "$status" = "inactive" ]; then
+echo "iptables is inactive ,now to start iptables"  
+    systemctl start iptables
+fi
+else 
+systemctl restart ss-redir
+echo "ip has change"
+echo " sed -i 's/$default/$pattern/g' /etc/sysconfig/iptables" > /tmp/test
+bash /tmp/test
+iptables-save >/etc/sysconfig/iptables
+iptables -L -n --line-numbers
+iptables  -t  nat  -nL 
+fi
+else
+echo "can't telnet home"
+if [ "$status" = "active" ]; then
+echo "iptables $status"
+echo "now stop iptables"
+systemctl stop iptables    
+fi
+fi
